@@ -1,11 +1,11 @@
-<<<<<<< HEAD
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import scipy.io
 import numpy as np
+import streamlit as st
 
-
+@st.cache_resource
 def get_mnist_loaders(batch_size=128):
     """
     Télécharge et prépare les DataLoaders pour MNIST.
@@ -27,7 +27,7 @@ def get_mnist_loaders(batch_size=128):
     return train_loader, test_loader
 
 
-
+@st.cache_resource
 def get_frey_loader(batch_size=128):
     """
     Charge le dataset Frey Face depuis le fichier .mat.
@@ -41,16 +41,44 @@ def get_frey_loader(batch_size=128):
     # Conversion en tenseur PyTorch (N, 1, 28, 20)
     faces = torch.from_numpy(faces).view(-1, 1, 28, 20)
     
+
     # Création du DataLoader
     dataset = torch.utils.data.TensorDataset(faces)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     
     return loader
-=======
+
 """This module contains useful functions for other modules.
 """
 
-import numpy as np
+@st.cache_resource
+def get_fashion_mnist_loaders(batch_size=128):
+    """
+    Download and prepare train/test DataLoaders for FashionMNIST.
+    Pixels are normalized to [0, 1].
+    """
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+
+    train_dataset = datasets.FashionMNIST(
+        root="./data",
+        train=True,
+        transform=transform,
+        download=True,
+    )
+    test_dataset = datasets.FashionMNIST(
+        root="./data",
+        train=False,
+        transform=transform,
+        download=True,
+    )
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_loader, test_loader
+
 
 
 def poly(x, order=3):
@@ -113,4 +141,4 @@ def paths(hidden_layers=2, dropout_rate=0.0):
     path_weights = base_name + ".pth"
     path_metrics = base_name + "_metrics.csv"
     return path_weights, path_metrics
->>>>>>> 266a5492f9f3d75528fb99e658271c452215da96
+
