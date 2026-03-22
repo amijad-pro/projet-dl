@@ -52,10 +52,12 @@ source venv/bin/activate
 Installer les dépendances :
 
 Bash
+cd projet-dl-main
 pip install -r requirements.txt
 Lancer l'application :
 
 Bash
+cd ..
 streamlit run app.py
 """
 
