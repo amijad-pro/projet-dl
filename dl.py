@@ -1,7 +1,6 @@
 """Variational autoencoder models and training utilities.
 
 
------
 Inspired from https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html.
 """
 
@@ -16,14 +15,43 @@ from state import empty_loss_history, update_history
 
 
 def reparameterize(mu, logvar):
-    """Sample latent vector using the reparameterization trick."""
+    """
+    Sample latent vector using the reparameterization trick.
+
+    The trick allows gradients to flow through the stochastic node by
+    sampling from a standard normal distribution and scaling by the 
+    learned standard deviation.
+
+    Parameters
+    ----------
+    mu : torch.Tensor
+        Mean of the latent Gaussian distribution.
+    logvar : torch.Tensor
+        Log-variance of the latent Gaussian distribution.
+
+    Returns
+    -------
+    torch.Tensor
+        Latent vector z sampled from the distribution.
+    """
     std = torch.exp(0.5 * logvar)
     eps = torch.randn_like(std)
     return mu + eps * std
 
 
 class VAE(nn.Module):
-    """Basic variational autoencoder."""
+    """
+    Basic Variational Autoencoder (VAE) implementation.
+
+    Parameters
+    ----------
+    input_dim : int
+        Dimension of the input data (e.g., 784 for 28x28 images).
+    hidden_dim : int
+        Dimension of the intermediate hidden layer.
+    latent_dim : int
+        Dimension of the latent space (bottleneck).
+    """
 
     def __init__(self, input_dim, hidden_dim, latent_dim):
         """Set up encoder and decoder layers."""
@@ -41,17 +69,61 @@ class VAE(nn.Module):
         self.fc4 = nn.Linear(hidden_dim, input_dim)
 
     def encode(self, x):
-        """Encode input into latent mean and log-variance."""
+        """
+        Pass input through encoder to get distribution parameters.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Flattened input data.
+
+        Returns
+        -------
+        mu : torch.Tensor
+            Latent mean vector.
+        logvar : torch.Tensor
+            Latent log-variance vector.
+        """
         h = F.relu(self.fc1(x))
         mu = self.fc2_mu(h)
         logvar = self.fc2_logvar(h)
         return mu, logvar
 
     def decode(self, z):
+        """
+        Reconstruct input from a latent vector z.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Latent space sample.
+
+        Returns
+        -------
+        torch.Tensor
+            Reconstructed data in the input space.
+        """
         h = F.relu(self.fc3(z))
         return torch.sigmoid(self.fc4(h))
 
     def forward(self, x):
+        """
+        Perform a full forward pass (encode, reparameterize, decode).
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input data batch.
+
+        Returns
+        -------
+        recon_x : torch.Tensor
+            Reconstructed batch.
+        mu : torch.Tensor
+            Latent means.
+        logvar : torch.Tensor
+            Latent log-variances.
+        """
         x = x.reshape(x.size(0), -1)
         mu, logvar = self.encode(x)
         z = reparameterize(mu, logvar)
@@ -59,7 +131,24 @@ class VAE(nn.Module):
 
 
 class CVAE(nn.Module):
-    """Conditional variational autoencoder."""
+    """
+    Conditional Variational Autoencoder (CVAE).
+
+    Incorporates label information into both the encoder and decoder to 
+    allow for directed generation of specific classes.
+
+    Parameters
+    ----------
+    input_dim : int
+        Dimension of the input data.
+    hidden_dim : int
+        Dimension of the intermediate hidden layer.
+    latent_dim : int
+        Dimension of the latent space.
+    num_classes : int
+        Number of distinct classes in the dataset for one-hot encoding.
+    """
+
     def __init__(self, input_dim, hidden_dim, latent_dim, num_classes):
         """Set up encoder and decoder layers with label conditioning."""
         super(CVAE, self).__init__()
@@ -75,22 +164,85 @@ class CVAE(nn.Module):
         self.fc4 = nn.Linear(hidden_dim, input_dim)
 
     def one_hot(self, y):
-        """Convert labels to one-hot vectors."""
+        """
+        Convert integer labels to one-hot vectors.
+
+        Parameters
+        ----------
+        y : torch.Tensor
+            Tensor of integer labels.
+
+        Returns
+        -------
+        torch.Tensor
+            Float tensor of one-hot encoded labels.
+        """
         return F.one_hot(y, num_classes=self.num_classes).float()
 
     def encode(self, x, y):
+        """
+        Encode input data conditioned on the label.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input data.
+        y : torch.Tensor
+            Input labels.
+
+        Returns
+        -------
+        mu : torch.Tensor
+            Conditional latent mean.
+        logvar : torch.Tensor
+            Conditional latent log-variance.
+        """
         y_onehot = self.one_hot(y)
         xy = torch.cat([x, y_onehot], dim=1)
         h = F.relu(self.fc1(xy))
         return self.fc2_mu(h), self.fc2_logvar(h)
 
     def decode(self, z, y):
+        """
+        Decode latent vector conditioned on the target label.
+
+        Parameters
+        ----------
+        z : torch.Tensor
+            Latent vector.
+        y : torch.Tensor
+            Target labels for generation.
+
+        Returns
+        -------
+        torch.Tensor
+            Conditioned reconstruction.
+        """
         y_onehot = self.one_hot(y)
         zy = torch.cat([z, y_onehot], dim=1)
         h = F.relu(self.fc3(zy))
         return torch.sigmoid(self.fc4(h))
 
     def forward(self, x, y):
+        """
+        Perform a conditional forward pass.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input data batch.
+        y : torch.Tensor
+            Input label batch.
+
+        Returns
+        -------
+        recon_x : torch.Tensor
+            Reconstructed batch.
+        mu : torch.Tensor
+            Conditional latent means.
+        logvar : torch.Tensor
+            Conditional latent log-variances.
+        """
         x = x.reshape(x.size(0), -1)
         mu, logvar = self.encode(x, y)
         z = reparameterize(mu, logvar)
@@ -98,7 +250,28 @@ class CVAE(nn.Module):
 
 
 def unpack_batch(batch):
-    """Get data and optional labels from a dataloader batch."""
+    """
+    Extract data and optional labels from a dataloader batch.
+
+    Handles both standard image loaders and labeled datasets.
+
+    Parameters
+    ----------
+    batch : torch.Tensor or list or tuple
+        Batch produced by a PyTorch DataLoader.
+
+    Returns
+    -------
+    data : torch.Tensor
+        The image data.
+    labels : torch.Tensor or None
+        The class labels if available.
+
+    Raises
+    ------
+    TypeError
+        If the batch type is not a tensor, list, or tuple.
+    """
     if torch.is_tensor(batch):
         return batch, None
 
@@ -111,16 +284,63 @@ def unpack_batch(batch):
 
 
 def loss_function(recon_x, x, mu, logvar, alpha, beta):
-    """Compute reconstruction loss and KL divergence."""
+    """
+    Compute total loss as weighted reconstruction and KL divergence.
+
+    Parameters
+    ----------
+    recon_x : torch.Tensor
+        Reconstructed data from the decoder.
+    x : torch.Tensor
+        Original ground truth data.
+    mu : torch.Tensor
+        Latent means.
+    logvar : torch.Tensor
+        Latent log-variances.
+    alpha : float
+        Weight for the reconstruction loss (BCE).
+    beta : float
+        Weight for the KL divergence regularization.
+
+    Returns
+    -------
+    total_loss : torch.Tensor
+        The weighted sum of losses.
+    bce : torch.Tensor
+        Binary Cross Entropy (unweighted).
+    kld : torch.Tensor
+        KL Divergence (unweighted).
+    """
     x = x.view(x.size(0), -1)
-    bce = F.binary_cross_entropy(recon_x, x, reduction='sum')
+    bce = F.binary_cross_entropy(recon_x, x, reduction="sum")
     kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     total_loss = alpha * bce + beta * kld
     return total_loss, bce, kld
 
 
 def run_model(model, data, labels=None):
-    """Call the right forward signature depending on the model type."""
+    """
+    Forward pass utility that handles different model signatures.
+
+    Parameters
+    ----------
+    model : nn.Module
+        The VAE or CVAE model instance.
+    data : torch.Tensor
+        Input image batch.
+    labels : torch.Tensor, optional
+        Input label batch (required for CVAE).
+
+    Returns
+    -------
+    tuple
+        Output of the model's forward pass (recon_x, mu, logvar).
+
+    Raises
+    ------
+    ValueError
+        If a CVAE is used without providing labels.
+    """
     if isinstance(model, CVAE):
         if labels is None:
             raise ValueError("CVAE requires labels, but labels=None was provided.")
@@ -128,8 +348,31 @@ def run_model(model, data, labels=None):
 
     return model(data)
 
+
 def train_model(model, train_loader, optimizer, epoch, alpha=1.0, beta=1.0):
-    """Train the model for one epoch."""
+    """
+    Train the model for a single epoch.
+
+    Parameters
+    ----------
+    model : nn.Module
+        Model to train.
+    train_loader : DataLoader
+        Source of training data.
+    optimizer : torch.optim.Optimizer
+        Optimization algorithm.
+    epoch : int
+        Current epoch number (for logging).
+    alpha : float, optional
+        Reconstruction weight, default is 1.0.
+    beta : float, optional
+        KL weight, default is 1.0.
+
+    Returns
+    -------
+    dict
+        Dictionary containing 'total', 'bce', and 'kld' losses per sample.
+    """
     model.train()
 
     train_loss = 0
@@ -168,12 +411,30 @@ def train_model(model, train_loader, optimizer, epoch, alpha=1.0, beta=1.0):
     return {
         "total": train_loss / n,
         "bce": (alpha * bce_loss) / n,
-        "kld": (beta * kld_loss) / n
+        "kld": (beta * kld_loss) / n,
     }
 
 
 def test_model(model, test_loader, alpha=1.0, beta=1.0):
-    """Evaluate the model on the test set."""
+    """
+    Evaluate the model on the test dataset.
+
+    Parameters
+    ----------
+    model : nn.Module
+        Model to evaluate.
+    test_loader : DataLoader
+        Source of evaluation data.
+    alpha : float, optional
+        Weight for BCE.
+    beta : float, optional
+        Weight for KLD.
+
+    Returns
+    -------
+    dict
+        Dictionary containing averaged losses on the test set.
+    """
     model.eval()
     device = next(model.parameters()).device
 
@@ -204,8 +465,36 @@ def test_model(model, test_loader, alpha=1.0, beta=1.0):
     return metrics
 
 
-def build_model_config(dataset_name: str, input_dim: int, hidden_dim: int, latent_dim: int, learning_rate: float) -> dict[str, str | int | float]:
-    """Build the config dictionary used to detect model-setting changes."""
+def build_model_config(
+    dataset_name: str,
+    input_dim: int,
+    hidden_dim: int,
+    latent_dim: int,
+    learning_rate: float,
+) -> dict[str, str | int | float]:
+    """
+    Create a configuration dictionary to track state changes.
+
+    Used to determine if the model needs re-initialization in Streamlit.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name of the dataset being used.
+    input_dim : int
+        Dimension of the input.
+    hidden_dim : int
+        Size of the hidden layers.
+    latent_dim : int
+        Size of the latent space.
+    learning_rate : float
+        Current learning rate.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the specified settings.
+    """
     return {
         "dataset_name": dataset_name,
         "input_dim": input_dim,
@@ -223,7 +512,24 @@ def initialize_models(
     learning_rate: float,
     dataset_info: dict,
 ) -> None:
-    """Create fresh VAE/CVAE models and optimizers for the current config."""
+    """
+    Create fresh instances of models and optimizers.
+
+    Clears history and samples in st.session_state to prevent cross-config contamination.
+
+    Parameters
+    ----------
+    input_dim : int
+        Data input dimension.
+    hidden_dim : int
+        Neural network hidden layer width.
+    latent_dim : int
+        VAE bottleneck width.
+    learning_rate : float
+        Alpha rate for Adam optimizer.
+    dataset_info : dict
+        Contextual info about the dataset (labels, classes, etc.).
+    """
     vae_model = VAE(
         input_dim=input_dim,
         hidden_dim=hidden_dim,
@@ -259,7 +565,16 @@ def initialize_models(
 
 
 def sync_models_with_config(model_config: dict, dataset_info: dict) -> None:
-    """Reinitialize models when the selected configuration changes."""
+    """
+    Reinitialize session state models if the UI parameters have changed.
+
+    Parameters
+    ----------
+    model_config : dict
+        The current required configuration.
+    dataset_info : dict
+        Dataset context.
+    """
     if st.session_state.model_config == model_config:
         return
 
@@ -274,7 +589,25 @@ def sync_models_with_config(model_config: dict, dataset_info: dict) -> None:
 
 
 def evaluate_if_available(model, test_loader, alpha: float, beta: float):
-    """Return test metrics when a test loader exists, otherwise None."""
+    """
+    Wrapper for test_model that handles missing loaders.
+
+    Parameters
+    ----------
+    model : nn.Module
+        The model to test.
+    test_loader : DataLoader or None
+        Test set source.
+    alpha : float
+        Reconstruction weight.
+    beta : float
+        KL weight.
+
+    Returns
+    -------
+    dict or None
+        Metrics if loader exists, else None.
+    """
     if test_loader is None:
         return None
     return test_model(model, test_loader, alpha, beta)
@@ -294,7 +627,38 @@ def train_and_store_models(
     input_dim,
     preview_fn=None,
 ):
-    """Train active models, show progress, and persist results in session state."""
+    """
+    Full training loop for multiple models with live UI updates.
+
+    Saves results to Streamlit's session state.
+
+    Parameters
+    ----------
+    vae_model : VAE
+        The standard VAE instance.
+    vae_optimizer : Optimizer
+        Optimizer for the VAE.
+    cvae_model : CVAE or None
+        The conditional VAE instance.
+    cvae_optimizer : Optimizer or None
+        Optimizer for the CVAE.
+    train_loader : DataLoader
+        Train data.
+    test_loader : DataLoader
+        Test data.
+    epochs : int
+        Number of epochs to train.
+    alpha : float
+        BCE weight.
+    beta : float
+        KLD weight.
+    image_shape : tuple
+        Original shape of the images (C, H, W).
+    input_dim : int
+        Flattened input size.
+    preview_fn : callable, optional
+        Function to render intermediate results in the UI.
+    """
     history = empty_loss_history()
     test_history = empty_loss_history()
     cvae_history = empty_loss_history()
@@ -305,7 +669,9 @@ def train_and_store_models(
     preview_container = st.container()
 
     for epoch in range(1, epochs + 1):
-        vae_losses = train_model(vae_model, train_loader, vae_optimizer, epoch, alpha, beta)
+        vae_losses = train_model(
+            vae_model, train_loader, vae_optimizer, epoch, alpha, beta
+        )
         update_history(history, vae_losses)
 
         vae_test_losses = evaluate_if_available(vae_model, test_loader, alpha, beta)
@@ -323,7 +689,9 @@ def train_and_store_models(
             )
             update_history(cvae_history, cvae_losses)
 
-            cvae_test_losses = evaluate_if_available(cvae_model, test_loader, alpha, beta)
+            cvae_test_losses = evaluate_if_available(
+                cvae_model, test_loader, alpha, beta
+            )
             if cvae_test_losses is not None:
                 update_history(cvae_test_history, cvae_test_losses)
 
@@ -346,27 +714,63 @@ def train_and_store_models(
     st.session_state.test_history = test_history
     st.session_state.cvae_history = cvae_history
     st.session_state.cvae_test_history = cvae_test_history
-    st.session_state.test_metrics = evaluate_if_available(vae_model, test_loader, alpha, beta)
-    st.session_state.cvae_test_metrics = evaluate_if_available(
-        cvae_model,
-        test_loader,
-        alpha,
-        beta,
-    ) if cvae_model is not None else None
+    st.session_state.test_metrics = evaluate_if_available(
+        vae_model, test_loader, alpha, beta
+    )
+    st.session_state.cvae_test_metrics = (
+        evaluate_if_available(
+            cvae_model,
+            test_loader,
+            alpha,
+            beta,
+        )
+        if cvae_model is not None
+        else None
+    )
     st.session_state.trained = True
     st.session_state.random_samples = None
     st.session_state.conditional_samples = None
 
 
 def generate_random_samples(vae_model, latent_dim: int):
-    """Generate random decoded samples from the plain VAE latent space."""
+    """
+    Generate decoded images by sampling from the prior.
+
+    Parameters
+    ----------
+    vae_model : VAE
+        Trained VAE model.
+    latent_dim : int
+        Width of the latent space.
+
+    Returns
+    -------
+    torch.Tensor
+        Batch of 8 generated image tensors.
+    """
     with torch.no_grad():
         latent_vectors = torch.randn(8, latent_dim).to(DEVICE)
         return vae_model.decode(latent_vectors).cpu()
 
 
 def generate_conditional_samples(cvae_model, latent_dim: int, class_idx: int):
-    """Generate decoded samples from the CVAE for a specific class."""
+    """
+    Generate images conditioned on a specific class label.
+
+    Parameters
+    ----------
+    cvae_model : CVAE
+        Trained Conditional VAE.
+    latent_dim : int
+        Width of the latent space.
+    class_idx : int
+        Numerical index of the target class.
+
+    Returns
+    -------
+    torch.Tensor
+        Batch of 8 generated image tensors for the selected class.
+    """
     with torch.no_grad():
         latent_vectors = torch.randn(8, latent_dim).to(DEVICE)
         class_labels = torch.full((8,), class_idx, dtype=torch.long, device=DEVICE)

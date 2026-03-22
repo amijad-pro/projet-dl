@@ -17,7 +17,20 @@ from ui import (
 st.set_page_config(page_title="VAE Project - Dashboard", layout="wide")
 
 def main() -> None:
-    """Run the Streamlit application."""
+    """
+    Orchestrate and run the Streamlit dashboard application.
+
+    This function initializes the session state, renders the sidebar for 
+    parameter selection, manages the dataset loading, synchronizes the 
+    VAE/CVAE models with the selected configuration, and handles the 
+    navigation between training and generation tabs.
+
+    Returns
+    -------
+    None
+        This function does not return any value; it side-effects by 
+        rendering the Streamlit UI.
+    """
     initialize_session_state()
     params = render_sidebar()
 
@@ -43,7 +56,6 @@ def main() -> None:
     cvae_model = st.session_state.cvae_model
     cvae_optimizer = st.session_state.cvae_optimizer
 
-    # 3. INITIALISATION DES ONGLETS (via render_header)
     # Cette fonction crée les onglets Théorie, Entraînement et Génération
     render_header(
         dataset_info,
@@ -54,14 +66,11 @@ def main() -> None:
         params["latent_dim"],
     )
 
-    # 4. LOGIQUE DE L'ONGLET ENTRAÎNEMENT
     # On accède à l'onglet via le session_state initialisé dans ui.py
     with st.session_state.tab_train:
         train_clicked = st.button("Launch training", use_container_width=True)
         
         if train_clicked:
-            # Note: Si votre fonction train_and_store_models appelle render_epoch_preview,
-            # les images s'afficheront automatiquement dans cet onglet.
             train_and_store_models(
                 vae_model=vae_model,
                 vae_optimizer=vae_optimizer,
@@ -83,7 +92,7 @@ def main() -> None:
         else:
             st.info("Veuillez lancer l'entraînement pour voir l'analyse des pertes et les performances.")
 
-    # 5. LOGIQUE DE L'ONGLET GÉNÉRATION & LATENT
+    # LOGIQUE DE L'ONGLET GÉNÉRATION & LATENT
     if st.session_state.trained:
         # Ces fonctions utilisent 'with st.session_state.tab_gen' en interne
         render_generation_section(

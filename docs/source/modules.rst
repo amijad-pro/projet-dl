@@ -1,12 +1,14 @@
-methodes-ia
-===========
+projet-dl-main
+==============
 
 .. toctree::
    :maxdepth: 4
 
    app
+   config
    dl
-   plotly_events
+   plotting
    sandbox
+   state
+   ui
    utils
-   viz

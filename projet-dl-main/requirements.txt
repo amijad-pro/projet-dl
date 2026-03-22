@@ -16,7 +16,8 @@ docutils
 Jinja2
 
 # Qualité du code & Git 
-pre_commit
+pre-commit
+black
 flake8
 PyYAML
 

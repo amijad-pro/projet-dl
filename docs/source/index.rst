@@ -14,6 +14,7 @@ Welcome to methodes-ia's documentation!
    dl
    utils
    viz
+   modules
 
 .. Indices and tables
 .. ==================

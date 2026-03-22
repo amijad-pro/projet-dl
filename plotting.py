@@ -7,7 +7,20 @@ from config import DEVICE
 
 
 def plot_generated_samples(model, image_shape, latent_dim, n):
-    """Generate random samples from the latent prior and plot them."""
+    """
+    Generate random samples from the latent prior and plot them in a grid.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The trained VAE model used for decoding.
+    image_shape : Tuple[int, int]
+        The (height, width) of the images to be rendered.
+    latent_dim : int
+        The dimensionality of the latent space.
+    n : int
+        The number of samples to generate and display.
+    """
     model.eval()
     latent_vectors = torch.randn(n, latent_dim, device=DEVICE)
     samples = _decode_samples(model, latent_vectors)
@@ -15,7 +28,22 @@ def plot_generated_samples(model, image_shape, latent_dim, n):
 
 
 def plot_conditional_samples(model, image_shape, latent_dim, class_idx, n):
-    """Generate conditional samples for a given class and plot them."""
+    """
+    Generate conditional samples for a specific class and plot them.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The trained CVAE model.
+    image_shape : Tuple[int, int]
+        The (height, width) of the output images.
+    latent_dim : int
+        The dimensionality of the latent space.
+    class_idx : int
+        The numerical index of the class to generate (e.g., 0 for 'T-shirt').
+    n : int
+        The number of samples to generate.
+    """
     model.eval()
     latent_vectors = torch.randn(n, latent_dim, device=DEVICE)
     labels = torch.full((n,), class_idx, dtype=torch.long, device=DEVICE)
@@ -24,7 +52,16 @@ def plot_conditional_samples(model, image_shape, latent_dim, class_idx, n):
 
 
 def plot_sample_grid(samples, image_shape):
-    """Plot a horizontal grid of decoded samples."""
+    """
+    Plot a horizontal grid of decoded image samples.
+
+    Parameters
+    ----------
+    samples : torch.Tensor
+        Tensors of decoded images with shape (num_samples, input_dim).
+    image_shape : Tuple[int, int]
+        The (height, width) for reshaping the flattened tensors.
+    """
     num_samples = samples.shape[0]
     fig, axes = plt.subplots(1, num_samples, figsize=(2 * num_samples, 2.5))
 
@@ -42,11 +79,25 @@ def plot_sample_grid(samples, image_shape):
 
 
 def plot_latent_space(model, image_shape, latent_dim, n):
-    """Display a 2D latent manifold by decoding a regular latent grid."""
+    """
+    Display a 2D latent manifold by decoding a regular grid of latent coordinates.
+
+    This visualization is only applicable if the latent dimension is at least 2.
+    It iterates through a grid in the first two dimensions of the latent space.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The trained VAE model.
+    image_shape : Tuple[int, int]
+        The (height, width) of the images.
+    latent_dim : int
+        The total dimensionality of the latent space.
+    n : int
+        The number of images per side of the square grid (total n*n images).
+    """
     if latent_dim < 2:
-        st.warning(
-            "Latent dimension must be at least 2 to display the manifold."
-        )
+        st.warning("Latent dimension must be at least 2 to display the manifold.")
         return
 
     model.eval()
@@ -77,7 +128,16 @@ def plot_latent_space(model, image_shape, latent_dim, n):
 
 
 def plot_losses(history, test_history):
-    """Plot total, reconstruction, and KL losses across epochs."""
+    """
+    Plot total, reconstruction (BCE), and regularization (KL) losses across epochs.
+
+    Parameters
+    ----------
+    history : dict
+        Training history containing lists of losses for each metric.
+    test_history : dict, optional
+        Test history containing lists of losses for evaluation.
+    """
     metric_specs = [
         ("Total", "Total Loss"),
         ("Reconstruction", "Reconstruction Loss"),
@@ -101,7 +161,22 @@ def plot_losses(history, test_history):
 
 
 def plot_reconstructions(model, dataset, image_shape, input_dim, n):
-    """Plot original images and their reconstructions."""
+    """
+    Plot a comparison between original images and their VAE reconstructions.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The trained VAE/CVAE model.
+    dataset : Any
+        The dataset to sample original images from.
+    image_shape : Tuple[int, int]
+        The (height, width) for display.
+    input_dim : int
+        The flattened size of the input images.
+    n : int
+        The number of image pairs to display.
+    """
     model.eval()
     fig, axes = plt.subplots(2, n, figsize=(2 * n, 4))
 
@@ -128,7 +203,23 @@ def plot_reconstructions(model, dataset, image_shape, input_dim, n):
 
 
 def _decode_samples(model, latent_vectors, labels):
-    """Decode latent vectors with or without conditional labels."""
+    """
+    Internal utility to decode latent vectors, handling conditional logic.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The model with a .decode() method.
+    latent_vectors : torch.Tensor
+        Latent space coordinates.
+    labels : torch.Tensor, optional
+        Labels for conditional decoding.
+
+    Returns
+    -------
+    torch.Tensor
+        The decoded samples on CPU.
+    """
     with torch.no_grad():
         if labels is None:
             return model.decode(latent_vectors).cpu()
@@ -136,20 +227,58 @@ def _decode_samples(model, latent_vectors, labels):
 
 
 def _grid_coordinates(n):
-    """Return the default latent-space grid coordinates."""
+    """
+    Generate coordinate arrays for a latent space grid.
+
+    Parameters
+    ----------
+    n : int
+        Number of points per axis.
+
+    Returns
+    -------
+    grid_x : np.ndarray
+        Coordinates for the x-axis.
+    grid_y : np.ndarray
+        Coordinates for the y-axis.
+    """
     grid = np.linspace(-3, 3, n)
     return grid, grid
 
 
 def _show_figure(fig):
-    """Render a Matplotlib figure in Streamlit and release it."""
+    """
+    Helper to render a Matplotlib figure in Streamlit and clear memory.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        The figure to render.
+    """
     plt.tight_layout()
     st.pyplot(fig)
     plt.close(fig)
 
 
 def _plot_series(axis, epochs, train_history, key, title, test_history):
-    """Plot a single training or test history series on one axis."""
+    """
+    Internal helper to plot training and test curves for a specific metric.
+
+    Parameters
+    ----------
+    axis : matplotlib.axes.Axes
+        The sub-plot axis to draw on.
+    epochs : list
+        The range of epoch numbers.
+    train_history : dict
+        Training metrics dictionary.
+    key : str
+        The dictionary key for the specific metric (e.g., 'total').
+    title : str
+        The title for the sub-plot.
+    test_history : dict, optional
+        Test metrics dictionary.
+    """
     axis.plot(epochs, train_history[key], label="Train")
     if test_history is not None and test_history.get(key):
         axis.plot(epochs, test_history[key], label="Test")
@@ -161,10 +290,20 @@ def _plot_series(axis, epochs, train_history, key, title, test_history):
 
 
 def get_image_from_dataset(dataset, index):
-    """Extract the image tensor from a dataset item.
+    """
+    Extract the image tensor from a dataset item, handling label presence.
 
-    Supports datasets that return either a single tensor or a tuple like
-    ``(image, label)``.
+    Parameters
+    ----------
+    dataset : Any
+        The dataset object (e.g., torchvision.datasets.MNIST).
+    index : int
+        The index of the item to retrieve.
+
+    Returns
+    -------
+    torch.Tensor
+        The extracted image tensor.
     """
     item = dataset[index]
     return item[0] if isinstance(item, (tuple, list)) else item

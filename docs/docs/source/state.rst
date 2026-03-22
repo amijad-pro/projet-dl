@@ -1,7 +1,7 @@
-sandbox module
-==============
+state module
+============
 
-.. automodule:: sandbox
+.. automodule:: state
    :members:
    :show-inheritance:
    :undoc-members:

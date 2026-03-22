@@ -6,7 +6,25 @@ from config import DATASET_OPTIONS
 
 
 def render_sidebar() -> dict[str, float | int | str]:
-    """Render sidebar controls and return the selected training parameters."""
+    """
+    Render sidebar controls and return the selected training parameters.
+
+    This function creates the radio buttons and sliders necessary for the 
+    user to configure the model architecture and the training hyperparameters.
+
+    Returns
+    -------
+    dict
+        A dictionary containing:
+        - dataset_name : str
+        - alpha : float (reconstruction weight)
+        - beta : float (KL divergence weight)
+        - epochs : int
+        - hidden_dim : int
+        - latent_dim : int
+        - batch_size : int
+        - learning_rate : float
+    """
     st.sidebar.title("Dataset Navigation")
 
     dataset_name = st.sidebar.radio("Choose a dataset", DATASET_OPTIONS)
@@ -50,7 +68,27 @@ def render_sidebar() -> dict[str, float | int | str]:
 
 
 def render_header(dataset_info: dict, alpha: float, beta: float, epochs: int, hidden_dim: int, latent_dim: int) -> None:
-    """Render the main page title and initialize the 3-tab segmentation."""
+    """
+    Render the main page title and initialize the 3-tab layout.
+
+    Sets up the "Theory", "Training", and "Generation" tabs and stores 
+    them in the session state for cross-module access.
+
+    Parameters
+    ----------
+    dataset_info : dict
+        Information about the selected dataset.
+    alpha : float
+        Current alpha hyperparameter.
+    beta : float
+        Current beta hyperparameter.
+    epochs : int
+        Target number of training epochs.
+    hidden_dim : int
+        Hidden layer size.
+    latent_dim : int
+        Latent space size.
+    """
     st.title(f"VAE Dashboard — {dataset_info['title']}")
     
     # Création des onglets pour la segmentation en 3 parties
@@ -76,7 +114,24 @@ def render_header(dataset_info: dict, alpha: float, beta: float, epochs: int, hi
 
 
 def render_epoch_preview(*, epoch, losses, model, train_loader, image_shape, input_dim) -> None:
-    """Render metrics and reconstructions in the Training tab."""
+    """
+    Render live metrics and reconstruction previews during training.
+
+    Parameters
+    ----------
+    epoch : int
+        The current epoch index.
+    losses : dict
+        Current epoch losses (total, bce, kld).
+    model : torch.nn.Module
+        The model being trained.
+    train_loader : DataLoader
+        Data source for reconstruction samples.
+    image_shape : tuple
+        (C, H, W) shape of the images.
+    input_dim : int
+        Flattened size of the input.
+    """
     with st.session_state.tab_train:
         st.subheader(f"Reconstructions after epoch {epoch}")
         metric_cols = st.columns(3)
@@ -94,7 +149,22 @@ def render_epoch_preview(*, epoch, losses, model, train_loader, image_shape, inp
 
 
 def render_generation_section(dataset_info, cvae_model, vae_model, image_shape, latent_dim) -> None:
-    """Render sample generation in the Generation tab."""
+    """
+    Render the generation interface (Unconditional vs Conditional).
+
+    Parameters
+    ----------
+    dataset_info : dict
+        Dataset context.
+    cvae_model : CVAE or None
+        Conditional model instance.
+    vae_model : VAE
+        Standard model instance.
+    image_shape : tuple
+        Shape for image rendering.
+    latent_dim : int
+        Size of the bottleneck.
+    """
     with st.session_state.tab_gen:
         st.header("Generated Samples")
         generate_clicked = st.button("Generate new samples", use_container_width=True)
@@ -145,7 +215,16 @@ def render_generation_section(dataset_info, cvae_model, vae_model, image_shape, 
 
 
 def render_evaluation_section(dataset_info, cvae_model) -> None:
-    """Render final evaluation in the Training tab."""
+    """
+    Display final training and test metrics in the Training tab.
+
+    Parameters
+    ----------
+    dataset_info : dict
+        Dataset context.
+    cvae_model : nn.Module or None
+        Optional conditional model to evaluate.
+    """
     with st.session_state.tab_train:
         st.divider()
         st.header("VAE Test Evaluation")
@@ -172,7 +251,18 @@ def render_evaluation_section(dataset_info, cvae_model) -> None:
 
 
 def render_latent_space_section(vae_model, image_shape, latent_dim) -> None:
-    """Render latent space in the Generation tab."""
+    """
+    Render the latent manifold grid in the Generation tab.
+
+    Parameters
+    ----------
+    vae_model : VAE
+        Model used for grid decoding.
+    image_shape : tuple
+        Shape for reconstruction.
+    latent_dim : int
+        Size of the bottleneck.
+    """
     with st.session_state.tab_gen:
         st.divider()
         st.header("Latent Space Exploration")
@@ -181,7 +271,16 @@ def render_latent_space_section(vae_model, image_shape, latent_dim) -> None:
 
 
 def render_loss_analysis_section(dataset_info: dict, cvae_model) -> None:
-    """Render training and test loss charts for available models in the Training tab."""
+    """
+    Display loss evolution charts for VAE and CVAE.
+
+    Parameters
+    ----------
+    dataset_info : dict
+        Dataset metadata.
+    cvae_model : nn.Module or None
+        Conditional model instance.
+    """
     with st.session_state.tab_train:
         st.divider()
         st.header("VAE Loss Analysis")
@@ -199,9 +298,16 @@ def render_loss_analysis_section(dataset_info: dict, cvae_model) -> None:
             plot_losses(st.session_state.cvae_history, st.session_state.cvae_test_history)
 
 
-# --- FONCTIONS DE CONTENU ---
-
+# FONCTIONS DE CONTENU
 def render_model_explanations(dataset_info):
+    """
+    Display the LaTeX-based theoretical summary of VAEs.
+
+    Parameters
+    ----------
+    dataset_info : dict
+        Information about the current dataset.
+    """
     st.markdown(r"""
     ### What this model is doing
     A **Variational Autoencoder (VAE)** learns how to compress an image into a
@@ -220,6 +326,16 @@ def render_model_explanations(dataset_info):
     _render_dataset_specific_info(dataset_info)
 
 def render_final_loss_metrics(title, metrics):
+    """
+    Render a row of three Streamlit metrics for Total, BCE, and KLD.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    metrics : dict
+        Dictionary with keys 'total', 'bce', and 'kld'.
+    """
     st.subheader(title)
     cols = st.columns(3)
     cols[0].metric("Total loss", f"{metrics['total']:.4f}")
@@ -227,6 +343,7 @@ def render_final_loss_metrics(title, metrics):
     cols[2].metric("KL loss", f"{metrics['kld']:.4f}")
 
 def render_latent_space_explanation():
+    """Render markdown text explaining how to interpret the latent grid."""
     st.markdown("""
     The **latent space** is the compressed bottleneck learned by the encoder.
     Each point in this space corresponds to a decoded image.
@@ -238,6 +355,7 @@ def render_latent_space_explanation():
     """)
 
 def _render_parameter_explanation():
+    """Render the detailed breakdown of the alpha/beta-weighted ELBO."""
     with st.expander("How the training parameters affect the model", expanded=True):
         st.markdown(r"""
     The VAE is trained with a weighted version of the usual ELBO objective:
@@ -253,6 +371,7 @@ def _render_parameter_explanation():
     """)
 
 def _render_dataset_specific_info(dataset_info):
+    """Display info message regarding CVAE availability."""
     if dataset_info["has_labels"]:
         st.info("On labeled datasets such as MNIST and FashionMNIST, the app trains both a standard VAE and a CVAE.")
     else:

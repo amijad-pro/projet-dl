@@ -11,15 +11,20 @@ sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "methodes-ia"
-copyright = "2025, Guillermo Durand"
-author = "Guillermo Durand"
+project = "VAEs"
+copyright = "2026, Anne-Laure Sulmont et Amjad Proietti"
+author = "Anne-Laure Sulmont et Amjad Proietti"
 release = "0.0.2"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.napoleon"]
+extensions = [
+    'sphinx.ext.autodoc',    
+    'sphinx.ext.napoleon',   
+    'sphinx.ext.viewcode',   
+    'sphinx.ext.mathjax',    
+]
 
 templates_path = ["_templates"]
 exclude_patterns = []
@@ -28,5 +33,5 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "alabaster"
+html_theme = 'sphinx_rtd_theme'
 html_static_path = ["_static"]

@@ -69,11 +69,13 @@ def _get_torchvision_loaders(dataset_cls, batch_size, root):
 @st.cache_resource
 def get_mnist_loaders(batch_size):
     """Return train and test dataloaders for MNIST."""
-    return _get_torchvision_loaders(datasets.MNIST, batch_size=batch_size, root=DATA_DIR)
+    return _get_torchvision_loaders(
+        datasets.MNIST, batch_size=batch_size, root=DATA_DIR
+    )
 
 
 @st.cache_resource
-def get_frey_loader(batch_size, data_path = FREY_FACES_PATH):
+def get_frey_loader(batch_size, data_path=FREY_FACES_PATH):
     """Load the Frey Faces dataset from a MATLAB ``.mat`` file.
 
     Parameters
@@ -96,9 +98,7 @@ def get_frey_loader(batch_size, data_path = FREY_FACES_PATH):
         If the expected ``ff`` key is missing from the MATLAB file.
     """
     if not data_path.exists():
-        raise FileNotFoundError(
-            f"Frey Faces dataset not found: {data_path}"
-        )
+        raise FileNotFoundError(f"Frey Faces dataset not found: {data_path}")
 
     data = scipy.io.loadmat(data_path)
     if "ff" not in data:
@@ -114,8 +114,7 @@ def get_frey_loader(batch_size, data_path = FREY_FACES_PATH):
 def get_fashion_mnist_loaders(batch_size):
     """Return train and test dataloaders for FashionMNIST."""
     return _get_torchvision_loaders(
-        datasets.FashionMNIST,
-        batch_size=batch_size, root=DATA_DIR
+        datasets.FashionMNIST, batch_size=batch_size, root=DATA_DIR
     )
 
 
@@ -179,18 +178,14 @@ def load_dataset(dataset_name, batch_size):
     if dataset_name not in dataset_configs:
         valid_names = ", ".join(dataset_configs)
         raise ValueError(
-            f"Unknown dataset: {dataset_name}. "
-            f"Expected one of: {valid_names}."
+            f"Unknown dataset: {dataset_name}. " f"Expected one of: {valid_names}."
         )
 
     config = dataset_configs[dataset_name].copy()
     loader_fn = config.pop("loader_fn")
 
     if dataset_name == "Frey Faces":
-        train_loader = loader_fn(
-            batch_size=batch_size,
-            data_path=FREY_FACES_PATH
-        )
+        train_loader = loader_fn(batch_size=batch_size, data_path=FREY_FACES_PATH)
         config["train_loader"] = train_loader
         config["test_loader"] = None
     else:

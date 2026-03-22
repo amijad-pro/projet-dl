@@ -1,7 +1,7 @@
-sandbox module
-==============
+config module
+=============
 
-.. automodule:: sandbox
+.. automodule:: config
    :members:
    :show-inheritance:
    :undoc-members:

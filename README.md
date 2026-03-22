@@ -1,17 +1,63 @@
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+# Projet de Deep Learning VAE
 
-# Projet de Deep Learning
+Projet de Deep Learning : Auto-encodeurs Variationnels (VAE)
+Ce dépôt a été réalisé dans le cadre du cours "Projet de Deep Learning" du Master 1 "Mathématiques et Intelligence Artificielle" de l'Université Paris-Saclay. Il contient l'implémentation et l'analyse de modèles génératifs profonds, centralisés autour d'une application interactive Streamlit.
 
-This repository serves as a template for the class "Projet de Deep Learning" in the 1st year of Master "Mathématiques et Intelligence Artificielle" of Université Paris-Saclay. Namely, this repository contains the code of a toy [Streamlit](https://streamlit.io/) application.
+Contenu de l'application
+L'utilisateur peut naviguer à travers trois onglets principaux pour explorer les modèles :
 
-## Content
+Théorie : Présentation mathématique des Auto-encodeurs Variationnels. Cette section détaille l'objectif de l'Evidence Lower Bound (ELBO) et le rôle de la divergence KL comme régularisateur de l'espace latent.
 
-The user can select four modes in the sidebar of the application.
-1. "Home data regression" performs regression with three simple methods (using decision trees and random forests) on a simple dataset of house prices. The user can select which covariates to use in the regression and visualize the validation MAE of the three methods.
-2. "Sinus regression" performs regression with polynomial regression and decision trees on the sinus function, with noise. The user can select the density of noisy data points and the order of the polynoms. The regressors are then plotted, with the data points.
-3. "Show MNIST" visualizes 6 random data points of the MNIST dataset and their labels.
-4. "Deep Learning" trains (or use trained weights if available) a simple artificial neuron network on the Fashion MNIST datatset, displays the architecture, displays the curves of train and test loss and train and test accuracy, and finally visualizes 6 random data points of the dataset, their labels and the predicition of the model. The user can select the number of hidden layers (it is a simple MLP), the level of dropout and the number of epochs. If trained weights for the same combination of hidden layers and dropout are found, they are used. If not, a model is trained and then the weights and metrics are saved. In the former case, a button allows the user to delete the trained weights and metrics and start a new training.
+Entraînement : Interface dédiée à l'apprentissage des modèles sur les jeux de données MNIST ou Fashion-MNIST.
+
+L'utilisateur peut ajuster les hyperparamètres : Alpha (poids de la reconstruction), Beta (poids de la divergence KL), la dimension latente et le nombre d'époques.
+
+Visualisation en temps réel des courbes de perte (Total, Reconstruction, KL) et des premières reconstructions du modèle.
+
+Gestion intelligente de l'état : les modèles et optimisateurs sont synchronisés avec la configuration choisie dans la barre latérale.
+
+Génération & Espace Latent : Exploration des capacités génératives après entraînement.
+
+Génération Aléatoire (VAE) : Échantillonnage dans le prior Gaussien pour générer de nouvelles images synthétiques.
+
+Génération Conditionnelle (CVAE) : Utilisation des étiquettes (labels) pour diriger la génération vers une classe spécifique (ex: générer uniquement des "Sneakers" ou des "T-shirts").
+
+Manifold de l'espace latent : Visualisation d'une grille 2D de l'espace latent pour observer la continuité et la structure des représentations apprises par l'encodeur.
+
+Aspects Techniques
+Inférence Variationnelle
+Le projet implémente l'astuce de reparamétrisation (reparameterization trick), permettant au gradient de circuler à travers le nœud stochastique du goulot d'étranglement (bottleneck).
+
+Documentation
+Le code source utilise le style de docstrings NumPy. Une documentation complète au format HTML peut être générée via Sphinx pour explorer les détails des classes VAE et CVAE, ainsi que les utilitaires d'entraînement et de visualisation.
+
+### Installation et Lancement
+
+Cloner le projetet se placer à la racine du dossier.
+Créer un environnement virtuel (recommandé) :
+
+"""
+bash
+python -m venv venv
+Activer l'environnement virtuel :
+
+Sur Windows :
+Bash
+.\venv\Scripts\activate
+
+Sur macOS/Linux :
+
+Bash
+source venv/bin/activate
+Installer les dépendances :
+
+Bash
+pip install -r requirements.txt
+Lancer l'application :
+
+Bash
+streamlit run app.py
+"""
 
 ## Miscellaneous
 
